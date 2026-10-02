@@ -1,0 +1,6 @@
+{
+  "name": "ZiiNi - Luxury Streetwear & Fashion",
+  "description": "Full-stack luxury streetwear and fashion e-commerce storefront for Men, Women, and Boys with real-time multi-color variants, cart, checkout, inventory, and admin management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

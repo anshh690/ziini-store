@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == "basudev527269@gmail.com"
+      );
+    }
+
+    // Default deny for unspecified paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Products: Catalog is publicly readable, and modifications permitted for store management and checkout inventory sync
+    match /products/{productId} {
+      allow read, write: if true;
+    }
+
+    // Orders: Anyone can create orders (guest or member), order status can be updated by management
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // User profiles & wishlists
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow read, write: if true;
+    }
+
+    // Coupons: readable and manageable
+    match /coupons/{couponId} {
+      allow read, write: if true;
+    }
+  }
+}

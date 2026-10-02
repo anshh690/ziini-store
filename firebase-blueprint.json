@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Fashion catalog item with multi-color variations and stock",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 150 },
+        "slug": { "type": "string", "maxLength": 160 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "gender": { "type": "string", "enum": ["men", "women", "boys", "unisex"] },
+        "category": { "type": "string", "enum": ["clothing", "footwear", "accessories"] },
+        "subcategory": { "type": "string", "maxLength": 50 },
+        "basePrice": { "type": "number" },
+        "salePrice": { "type": "number" },
+        "isSale": { "type": "boolean" },
+        "isNewArrival": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "tags": { "type": "array" },
+        "variants": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "gender", "category", "basePrice", "variants"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string", "maxLength": 32 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerEmail": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 30 },
+        "items": { "type": "array" },
+        "shippingAddress": { "type": "object" },
+        "subtotal": { "type": "number" },
+        "shippingFee": { "type": "number" },
+        "discount": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"] },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["orderNumber", "customerEmail", "customerName", "items", "shippingAddress", "total", "status"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with saved preferences and wishlist",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["customer", "admin"] },
+        "wishlist": { "type": "array" },
+        "savedAddresses": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Promotional discounts for store orders",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "maxLength": 30 },
+        "discountType": { "type": "string", "enum": ["percent", "fixed"] },
+        "value": { "type": "number" },
+        "minOrder": { "type": "number" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["code", "discountType", "value", "active"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catalog products with color variants"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders and fulfillment status"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Customer profiles, wishlist, and addresses"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Discounts and coupon vouchers"
+    },
+    "/admins/{adminId}": {
+      "schema": "UserProfile",
+      "description": "Privileged store administrator accounts"
+    }
+  }
+}
