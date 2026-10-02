@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuth,
 }) => {
   const { totalItemCount, setCartDrawerOpen, wishlist } = useCart();
-  const { user, isAdmin, logout, simulateAdminMode, toggleSimulateAdminMode } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -64,18 +64,18 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="flex items-center gap-4 text-[11px]">
             <button 
-              onClick={toggleSimulateAdminMode}
+              onClick={() => onNavigate('admin')}
               className={`flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors border ${
-                simulateAdminMode 
+                isAdmin 
                   ? 'border-[#ccff00] text-[#ccff00] bg-[#ccff00]/10' 
-                  : 'border-neutral-800 text-neutral-400 hover:text-white'
+                  : 'border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
               }`}
-              title="Toggle simulated admin mode for testing"
+              title="Secure Admin Portal"
             >
-              <ShieldCheck className="w-3 h-3" />
-              <span>Admin Mode: {simulateAdminMode ? 'ON' : 'OFF'}</span>
+              <ShieldCheck className="w-3 h-3 text-[#ccff00]" />
+              <span>{isAdmin ? 'ADMIN CONSOLE' : 'ADMIN ACCESS'}</span>
             </button>
-            <span className="hidden sm:inline text-neutral-500 font-mono">EN / BDT</span>
+            <span className="hidden sm:inline text-neutral-500 font-mono">EN / BDT (৳)</span>
           </div>
         </div>
       </div>

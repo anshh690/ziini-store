@@ -223,11 +223,16 @@ export async function getAllOrders(): Promise<Order[]> {
 
 export async function getCustomerOrders(email: string, customerId?: string): Promise<Order[]> {
   try {
-    const all = await getAllOrders();
-    return all.filter(o => 
-      o.customerEmail.toLowerCase() === email.toLowerCase() || 
-      (customerId && o.customerId === customerId)
-    );
+    const collRef = collection(db, ORDERS_COLLECTION);
+    let q;
+    if (customerId) {
+      q = query(collRef, where('customerId', '==', customerId));
+    } else {
+      q = query(collRef, where('customerEmail', '==', email.toLowerCase()));
+    }
+    const snap = await getDocs(q);
+    const orders = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+    return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error) {
     console.warn('getCustomerOrders error:', error);
     return [];

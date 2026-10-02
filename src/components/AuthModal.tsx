@@ -9,7 +9,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { loginWithGoogle, loginWithEmail, signupWithEmail, toggleSimulateAdminMode, simulateAdminMode } = useAuth();
+  const { loginWithGoogle, loginWithEmail, signupWithEmail } = useAuth();
   const { showToast } = useToast();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -219,32 +219,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </button>
               </p>
             )}
-          </div>
-
-          {/* Quick Admin Test Helper */}
-          <div className="mt-6 pt-4 border-t border-neutral-800/80">
-            <div className="p-3 bg-neutral-950 border border-neutral-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-mono text-neutral-300">
-                  <ShieldCheck className="w-4 h-4 text-[#ccff00]" />
-                  <span>Developer / Admin Mode</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleSimulateAdminMode}
-                  className={`text-[10px] font-mono px-2 py-1 border transition-all ${
-                    simulateAdminMode
-                      ? 'bg-[#ccff00] text-black font-bold border-[#ccff00]'
-                      : 'bg-neutral-900 text-neutral-400 border-neutral-700 hover:text-white'
-                  }`}
-                >
-                  {simulateAdminMode ? 'ENABLED' : 'ACTIVATE'}
-                </button>
-              </div>
-              <p className="text-[10px] text-neutral-500 font-mono mt-1">
-                Toggle to instantly inspect and manage products & orders in the Admin Console.
-              </p>
-            </div>
           </div>
         </div>
       </div>

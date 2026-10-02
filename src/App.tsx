@@ -17,18 +17,57 @@ import { AccountView } from './views/AccountView';
 import { AdminView } from './views/AdminView';
 
 import { Product } from './types';
-import { getProducts, ensureCatalogPopulated } from './lib/storeService';
+import { getProducts } from './lib/storeService';
 import { testFirestoreConnection } from './lib/firebase';
 
+const parsePathname = (pathname: string): { 
+  view: 'home' | 'shop' | 'product-detail' | 'cart' | 'checkout' | 'account' | 'admin'; 
+  params: any 
+} => {
+  const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  if (clean.startsWith('/admin')) {
+    const parts = clean.split('/').filter(Boolean);
+    const sub = parts[1] || 'dashboard';
+    let tab = 'dashboard';
+    if (sub === 'products' || sub === 'categories') tab = 'products';
+    else if (sub === 'orders') tab = 'orders';
+    else if (sub === 'customers') tab = 'customers';
+    else if (sub === 'coupons') tab = 'coupons';
+    else if (sub === 'settings') tab = 'settings';
+    else if (sub === 'analytics') tab = 'dashboard';
+    return { view: 'admin', params: { tab } };
+  }
+  if (clean === '/shop' || clean.startsWith('/shop/')) return { view: 'shop', params: {} };
+  if (clean === '/cart') return { view: 'cart', params: {} };
+  if (clean === '/checkout') return { view: 'checkout', params: {} };
+  if (clean === '/account') return { view: 'account', params: {} };
+  return { view: 'home', params: {} };
+};
+
 function MainApp() {
-  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'product-detail' | 'cart' | 'checkout' | 'account' | 'admin'>('home');
-  const [viewParams, setViewParams] = useState<any>({});
+  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'product-detail' | 'cart' | 'checkout' | 'account' | 'admin'>(() => {
+    return parsePathname(window.location.pathname).view;
+  });
+  const [viewParams, setViewParams] = useState<any>(() => {
+    return parsePathname(window.location.pathname).params;
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   // Overlays
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  // Listen to browser forward/backward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const parsed = parsePathname(window.location.pathname);
+      setCurrentView(parsed.view);
+      setViewParams(parsed.params);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Initialize and load products from Firestore
   const loadStoreCatalog = async () => {
@@ -53,6 +92,23 @@ function MainApp() {
     setCurrentView(view as any);
     setViewParams(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Synchronize browser URL bar for protected admin routes and customer pages
+    let targetPath = '/';
+    if (view === 'admin') {
+      targetPath = params?.tab && params.tab !== 'dashboard' ? `/admin/${params.tab}` : '/admin';
+    } else if (view === 'shop') {
+      targetPath = '/shop';
+    } else if (view === 'cart') {
+      targetPath = '/cart';
+    } else if (view === 'checkout') {
+      targetPath = '/checkout';
+    } else if (view === 'account') {
+      targetPath = '/account';
+    }
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ view, params }, '', targetPath);
+    }
   };
 
   const handleSelectProduct = (product: Product, color?: string) => {
@@ -144,6 +200,7 @@ function MainApp() {
 
             {currentView === 'admin' && (
               <AdminView
+                initialTab={viewParams?.tab || 'dashboard'}
                 onNavigate={handleNavigate}
                 onRefreshCatalog={loadStoreCatalog}
               />

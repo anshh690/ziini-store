@@ -205,10 +205,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Bottom bar */}
         <div className="mt-16 pt-8 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono text-neutral-500 gap-4">
           <p>© 2026 ZiiNi APPAREL GROUP. ALL RIGHTS RESERVED.</p>
-          <div className="flex gap-6">
+          <div className="flex gap-6 items-center">
             <span className="hover:text-neutral-400 cursor-pointer">PRIVACY POLICY</span>
             <span className="hover:text-neutral-400 cursor-pointer">TERMS OF SALE</span>
-            <span className="hover:text-neutral-400 cursor-pointer">COOKIE PREFERENCES</span>
+            <button 
+              onClick={() => onNavigate('admin')}
+              className="text-neutral-600 hover:text-[#ccff00] transition-colors uppercase"
+            >
+              ADMIN PORTAL
+            </button>
           </div>
         </div>
       </div>

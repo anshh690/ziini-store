@@ -13,48 +13,59 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { UserProfile } from '../types';
 
+export const AUTHORIZED_ADMIN_EMAIL = 'basudev527269@gmail.com';
+
+/**
+ * Strict server-trusted authorization check using the authenticated token
+ */
+export const isAuthorizedAdminUser = (currentUser: User | null): boolean => {
+  if (!currentUser || !currentUser.email) return false;
+  
+  const normalizedEmail = currentUser.email.trim().toLowerCase();
+  const targetEmail = AUTHORIZED_ADMIN_EMAIL.toLowerCase();
+  
+  if (normalizedEmail !== targetEmail) {
+    return false;
+  }
+
+  // Must be verified by Google or email verification
+  const isGoogle = currentUser.providerData.some(p => p.providerId === 'google.com');
+  const isVerified = Boolean(currentUser.emailVerified || isGoogle);
+
+  return isVerified;
+};
+
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
-  loginWithGoogle: () => Promise<void>;
+  authorizedAdminEmail: string;
+  loginWithGoogle: () => Promise<User>;
   loginWithEmail: (e: string, p: string) => Promise<void>;
   signupWithEmail: (e: string, p: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
-  simulateAdminMode: boolean;
-  toggleSimulateAdminMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const ADMIN_EMAIL = 'basudev527269@gmail.com';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [simulateAdminMode, setSimulateAdminMode] = useState(() => {
-    return localStorage.getItem('ziini_admin_mode') === 'true';
-  });
 
-  const toggleSimulateAdminMode = () => {
-    setSimulateAdminMode(prev => {
-      const next = !prev;
-      localStorage.setItem('ziini_admin_mode', String(next));
-      return next;
-    });
-  };
+  // Strictly compute admin authorization from authenticated Firebase identity
+  const isAdmin = isAuthorizedAdminUser(user);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      
       if (currentUser) {
         try {
+          const isUserAdmin = isAuthorizedAdminUser(currentUser);
           const userDocRef = doc(db, 'users', currentUser.uid);
           const snap = await getDoc(userDocRef);
-          
-          const isUserAdmin = currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
           if (snap.exists()) {
             setUserProfile(snap.data() as UserProfile);
@@ -62,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const newProfile: UserProfile = {
               uid: currentUser.uid,
               email: currentUser.email || '',
-              displayName: currentUser.displayName || 'Customer',
+              displayName: currentUser.displayName || (isUserAdmin ? 'Administrator' : 'Customer'),
               role: isUserAdmin ? 'admin' : 'customer',
               wishlist: [],
               createdAt: new Date().toISOString(),
@@ -72,10 +83,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserProfile(newProfile);
           }
 
-          // If designated admin, make sure admin record exists
+          // If confirmed authorized admin, record admin presence
           if (isUserAdmin) {
             const adminDocRef = doc(db, 'admins', currentUser.uid);
-            await setDoc(adminDocRef, { email: currentUser.email, role: 'admin' }, { merge: true });
+            await setDoc(adminDocRef, { 
+              email: currentUser.email, 
+              role: 'admin',
+              lastLogin: new Date().toISOString() 
+            }, { merge: true });
           }
         } catch (err) {
           console.warn('User profile sync notice:', err);
@@ -89,9 +104,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (): Promise<User> => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
   };
 
   const loginWithEmail = async (email: string, pass: string) => {
@@ -106,10 +123,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    try {
+      localStorage.removeItem('ziini_admin_mode');
+    } catch {}
     await signOut(auth);
   };
-
-  const isAdmin = simulateAdminMode || (user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) || (userProfile?.role === 'admin');
 
   return (
     <AuthContext.Provider
@@ -118,12 +136,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userProfile,
         loading,
         isAdmin,
+        authorizedAdminEmail: AUTHORIZED_ADMIN_EMAIL,
         loginWithGoogle,
         loginWithEmail,
         signupWithEmail,
-        logout,
-        simulateAdminMode,
-        toggleSimulateAdminMode
+        logout
       }}
     >
       {children}

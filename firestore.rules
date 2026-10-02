@@ -6,41 +6,62 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        request.auth.token.email == "basudev527269@gmail.com"
-      );
+    // Strictly authorize ONLY the designated administrator account
+    function isAuthorizedAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email != null &&
+        request.auth.token.email.lower() == "basudev527269@gmail.com" &&
+        (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
     }
 
-    // Default deny for unspecified paths
+    // Default deny for all unspecified paths
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Products: Catalog is publicly readable, and modifications permitted for store management and checkout inventory sync
+    // Products:
+    // Storefront catalog is publicly readable by anyone (guests & customers)
+    // Only the authorized admin can create or delete products
+    // Updates are allowed for authorized admin (full edit) or inventory stock decrements during order checkout
     match /products/{productId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, delete: if isAuthorizedAdmin();
+      allow update: if isAuthorizedAdmin() ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['variants', 'updatedAt']));
     }
 
-    // Orders: Anyone can create orders (guest or member), order status can be updated by management
+    // Orders:
+    // Any customer (guest or signed-in) can create an order during checkout
+    // Reading orders is strictly restricted:
+    // - Authorized admin can read and list ALL orders
+    // - Authenticated customer can only read their own order documents
+    // Modifying order status or deleting orders is strictly restricted to the authorized admin
     match /orders/{orderId} {
-      allow read, write: if true;
+      allow create: if true;
+      allow read: if isAuthorizedAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
+      allow update, delete: if isAuthorizedAdmin();
     }
 
-    // User profiles & wishlists
+    // User profiles & customer records:
+    // - Each customer can read and update their own profile document
+    // - Authorized admin can read all customer profiles for management
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if isAuthorizedAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isAuthorizedAdmin() || (isSignedIn() && request.auth.uid == userId);
     }
 
-    // Admins collection
+    // Admins collection:
+    // Strictly restricted to the authorized admin
     match /admins/{adminId} {
-      allow read, write: if true;
+      allow read, write: if isAuthorizedAdmin();
     }
 
-    // Coupons: readable and manageable
+    // Coupons / Promo codes:
+    // Public can read to validate coupons
+    // Only authorized admin can create, update, or delete coupons
     match /coupons/{couponId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthorizedAdmin();
     }
   }
 }
